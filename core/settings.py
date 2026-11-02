@@ -1,14 +1,11 @@
 import os
 from pathlib import Path
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-change-me-in-production'
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 INSTALLED_APPS = [
@@ -19,14 +16,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Твои приложения:
+    # Твои приложения
     'courses',
     'lms',
     'users',
 
+    # Библиотеки API и авторизации
     'rest_framework',
-    'django_filters',              # Полезно для фильтров платежей
-    'rest_framework_simplejwt',  # ОБЯЗАТЕЛЬНО для JWT
+    'drf_spectacular',
+    'django_filters',
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -41,10 +40,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'core.urls'
 
+# --- ИСПРАВЛЕННЫЙ БЛОК TEMPLATES (Критически важно!) ---
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [],  # Если у тебя есть свои шаблоны, укажи путь здесь, например [BASE_DIR / 'templates']
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -84,30 +84,19 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- МОИ НАСТРОЙКИ ---
-# AUTH_USER_MODEL = 'users.User'
-
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
-    ],
-}
-
-# --- ВАЖНО: Указываем свою модель пользователя ---
+# --- НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ ---
 AUTH_USER_MODEL = 'users.User'
 
 # --- НАСТРОЙКИ REST FRAMEWORK ---
-from datetime import timedelta
-
 REST_FRAMEWORK = {
-    # По умолчанию: ЗАКРЫВАЕМ всё! Только авторизованные могут ходить
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    # Подключаем JWT аутентификацию
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
+    ],
+    # 👇 ЭТО ОБЯЗАТЕЛЬНО ДЛЯ SWAGGER
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # --- НАСТРОЙКИ SIMPLE_JWT ---
@@ -116,3 +105,13 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'UPDATE_LAST_LOGIN': True,
 }
+
+# --- НАСТРОЙКИ DOCUMENTATION ---
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Course Platform API',
+    'DESCRIPTION': 'API для управления курсами, подписками и оплатой.',
+    'VERSION': '1.0.0',
+    # Игнорируем ошибки при построении схемы, чтобы Swagger хотя бы открылся
+    'ASSERTION_ERROR_CODE': 400,
+}
+

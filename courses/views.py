@@ -1,8 +1,16 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 from .models import Course, Lesson, Subscription
 from .serializers import CourseSerializer, LessonSerializer, SubscriptionSerializer
+
+# --- НОВЫЕ ИМПОРТЫ ДЛЯ STRIPE И ДОКУМЕНТАЦИИ ---
+from .stripe_service import create_stripe_product_and_price, create_checkout_session
+from drf_spectacular.utils import extend_schema
+
+
+# -----------------------------------------------
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -115,3 +123,74 @@ class SubscribeView(APIView):
                 )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# --- НОВЫЙ КЛАСС ДЛЯ ОПЛАТЫ (STRIPE) ---
+@extend_schema(
+    description="Запускает процесс оплаты курса через Stripe. Создает продукт, цену и сессию оплаты.",
+    request=None,
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "payment_id": {"type": "integer", "description": "ID платежа в нашей БД"},
+                "stripe_session_id": {"type": "string", "description": "ID сессии Stripe"},
+                "url": {"type": "string", "description": "Ссылка на страницу оплаты"}
+            }
+        },
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        404: {"type": "object", "properties": {"detail": {"type": "string"}}},
+        500: {"type": "object", "properties": {"error": {"type": "string"}}}
+    }
+)
+class PurchaseCourseView(APIView):
+    """
+    Запускает процесс оплаты курса.
+    На вход: id курса.
+    На выход: ссылка на оплату Stripe и ID платежа в нашей БД.
+    """
+
+    def post(self, request, *args, **kwargs):
+        course_id = request.data.get('course_id')
+
+        if not course_id:
+            return Response({"error": "course_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        course = get_object_or_404(Course, id=course_id)
+        user = request.user
+
+        # ЦЕНА В ЦЕНТАХ (для USD) или КОПЕЙКАХ (для RUB).
+        # В реальном проекте лучше брать из course.price, здесь фиксировано для теста.
+        amount_cents = 1000
+
+        try:
+            # 1. Создаем продукт и цену в Stripe
+            price_id = create_stripe_product_and_price(course, amount_cents)
+
+            # 2. Формируем URL для успеха и отмены
+            # ВАЖНО: Эти URL должны существовать в твоем фронтенде.
+            # Для теста можно оставить заглушками, но Stripe требует валидные URL.
+            success_url = "http://127.0.0.1:8000/payment-success"
+            cancel_url = "http://127.0.0.1:8000/payment-cancel"
+
+            # 3. Создаем сессию и получаем ссылку
+            session_id, url, payment_id = create_checkout_session(
+                user=user,
+                course=course,
+                price_id=price_id,
+                success_url=success_url,
+                cancel_url=cancel_url,
+                amount_cents=amount_cents
+            )
+
+            return Response({
+                "payment_id": payment_id,
+                "stripe_session_id": session_id,
+                "url": url
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            # В продакшене тут нужен logger.error()
+            print(f"Stripe Error: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# -------------------------------------------

@@ -47,3 +47,28 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.user.email} -> {self.course.title}"
+
+
+class Payment(models.Model):
+    # Было: related_name='payments'
+    # Стало: related_name='course_payments' (уникальное имя!)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='course_payments'
+    )
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='payments'
+    )
+
+    stripe_session_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
+    amount = models.IntegerField(help_text="Цена в копейках/центах")
+    status = models.CharField(max_length=50, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Payment #{self.id} for {self.course.title} ({self.status})"
