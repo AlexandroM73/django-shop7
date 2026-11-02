@@ -7,9 +7,9 @@ class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
-        # Лучше не использовать '__all__' в вложенных сериализаторах — так API будет чище.
-        # Оставь только самое важное. Если нужны все поля — поставь '__all__'.
-        fields = ['id', 'title', 'duration']  # добавь сюда свои ключевые поля
+        # Используем только те поля, которые реально есть в модели Lesson
+        fields = ['id', 'title', 'description', 'preview', 'video_link']
+
 
 
 class CourseSerializer(serializers.ModelSerializer):
