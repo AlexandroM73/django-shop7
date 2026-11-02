@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 # from django_filters.rest_framework import DjangoFilterBackend
-from .models import Payment
+# from .models import Payment
+from courses.models import Payment
 from .serializers import PaymentSerializer
 from rest_framework import viewsets
 # from .filters import PaymentFilter
