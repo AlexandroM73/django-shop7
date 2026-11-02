@@ -25,6 +25,8 @@ INSTALLED_APPS = [
     'users',
 
     'rest_framework',
+    'django_filters',              # Полезно для фильтров платежей
+    'rest_framework_simplejwt',  # ОБЯЗАТЕЛЬНО для JWT
 ]
 
 MIDDLEWARE = [
@@ -89,4 +91,28 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+}
+
+# --- ВАЖНО: Указываем свою модель пользователя ---
+AUTH_USER_MODEL = 'users.User'
+
+# --- НАСТРОЙКИ REST FRAMEWORK ---
+from datetime import timedelta
+
+REST_FRAMEWORK = {
+    # По умолчанию: ЗАКРЫВАЕМ всё! Только авторизованные могут ходить
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    # Подключаем JWT аутентификацию
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+# --- НАСТРОЙКИ SIMPLE_JWT ---
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'UPDATE_LAST_LOGIN': True,
 }
