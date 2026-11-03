@@ -1,0 +1,27 @@
+# Виртуальное окружение
+venv/
+
+# Кэш Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Файлы Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Переменные окружения и секреты
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# База данных (если используешь SQLite локально)
+db.sqlite3
